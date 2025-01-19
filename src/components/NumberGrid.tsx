@@ -39,7 +39,9 @@ export const NumberGrid: React.FC<Props> = ({ numbers, onSum, onComplete, size }
     };
   };
 
-  const handleStart = (id: string, event: React.MouseEvent | React.TouchEvent) => {
+  const handleStart = (id: string, event: React.MouseEvent) => {
+    if (event.type !== 'mousedown') return; // Only allow mouse interactions
+    
     event.preventDefault();
     const cell = numbers.find((n) => n.id === id);
     if (!cell) return;
@@ -52,17 +54,14 @@ export const NumberGrid: React.FC<Props> = ({ numbers, onSum, onComplete, size }
     lastPosition.current = pos;
   };
 
-  const handleMove = (event: React.MouseEvent | React.TouchEvent) => {
+  const handleMove = (event: React.MouseEvent) => {
     if (!connecting || !gridRef.current) return;
 
     event.preventDefault();
     const gridRect = gridRef.current.getBoundingClientRect();
-    const clientX = "touches" in event ? event.touches[0].clientX : event.clientX;
-    const clientY = "touches" in event ? event.touches[0].clientY : event.clientY;
-
     const currentPosition = {
-      x: clientX - gridRect.left,
-      y: clientY - gridRect.top,
+      x: event.clientX - gridRect.left,
+      y: event.clientY - gridRect.top,
     };
 
     setLines((prev) => [...prev.slice(0, -1), currentPosition]);
@@ -97,32 +96,16 @@ export const NumberGrid: React.FC<Props> = ({ numbers, onSum, onComplete, size }
     setLines([]);
   };
 
-  useEffect(() => {
-    const preventDefault = (e: TouchEvent) => e.preventDefault();
-    const gridElement = gridRef.current;
-    if (gridElement) {
-      gridElement.addEventListener("touchmove", preventDefault, { passive: false });
-    }
-    return () => {
-      if (gridElement) {
-        gridElement.removeEventListener("touchmove", preventDefault);
-      }
-    };
-  }, []);
-
   return (
     <div
       ref={gridRef}
-      className="relative w-full aspect-square max-w-[500px] bg-game-bg rounded-lg p-4 touch-none"
+      className="relative w-full aspect-square max-w-[400px] bg-game-bg rounded-lg p-3 touch-none select-none"
       onMouseUp={handleEnd}
-      onTouchEnd={handleEnd}
       onMouseLeave={handleEnd}
-      onTouchCancel={handleEnd}
       onMouseMove={handleMove}
-      onTouchMove={handleMove}
     >
       <div
-        className="grid gap-4 h-full"
+        className="grid gap-2 h-full"
         style={{
           gridTemplateColumns: `repeat(${size}, 1fr)`,
         }}
@@ -132,14 +115,13 @@ export const NumberGrid: React.FC<Props> = ({ numbers, onSum, onComplete, size }
             key={number.id}
             id={number.id}
             className={cn(
-              "relative flex items-center justify-center w-full aspect-square rounded-full bg-game-circle border-2 border-game-border shadow-sm transition-colors",
+              "relative flex items-center justify-center w-full aspect-square rounded-full bg-game-circle border-2 border-game-border shadow-sm transition-colors text-sm",
               connected.includes(number.id) && "bg-game-connection text-white"
             )}
             onMouseDown={(e) => handleStart(number.id, e)}
-            onTouchStart={(e) => handleStart(number.id, e)}
             onMouseEnter={() => handleEnterCell(number.id)}
           >
-            <span className="text-lg font-semibold">{number.value}</span>
+            <span className="font-semibold">{number.value}</span>
           </div>
         ))}
       </div>
@@ -162,7 +144,7 @@ export const NumberGrid: React.FC<Props> = ({ numbers, onSum, onComplete, size }
       </svg>
       {connecting && currentSum > 0 && (
         <div
-          className="absolute text-xl font-bold text-game-connection animate-connection-pulse pointer-events-none"
+          className="absolute text-lg font-bold text-game-connection animate-connection-pulse pointer-events-none"
           style={{
             left: `${lastPosition.current.x}px`,
             top: `${lastPosition.current.y - 30}px`,
